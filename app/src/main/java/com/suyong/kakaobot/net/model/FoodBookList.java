@@ -12,7 +12,7 @@ import java.util.List;
 
 public class FoodBookList extends BFEnty {
     public FoodBookList() {
-        setUrl("/restaurant/sidedish/api/list.json");
+        setUrl("http://t.bodyfriend.co.kr:8070/restaurant/sidedish/api/list.json");
         setParam("saleDate", SDF.yyyymmdd_1.now());
 
     }

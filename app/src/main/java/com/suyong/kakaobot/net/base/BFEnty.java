@@ -82,7 +82,7 @@ public class BFEnty extends NetEnty {
 
         json = json.replaceAll("\"n\"", "N");
         json = json.replaceAll("\"y\"", "Y");
-        Log.d(json.toString());
+//        Log.d(json.toString());
 
         // 프로그래스 종료
         hideProgress();
@@ -129,6 +129,7 @@ public class BFEnty extends NetEnty {
             field.set(this, gson.fromJson(json, cls));
         } catch (Exception e) {
             Log.l(this, e.getMessage());
+            Log.l(this, "Pojo!!!!!!!");
             new Pojo(getClass(), json).gen().toLog();
         }
     }
@@ -203,7 +204,7 @@ public class BFEnty extends NetEnty {
 
     public void setUrl(String url) {
 
-        this.url = NetConst.host + url;
+        this.url = url;
     }
 
 }

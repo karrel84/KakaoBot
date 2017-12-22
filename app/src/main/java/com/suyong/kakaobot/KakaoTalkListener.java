@@ -17,11 +17,26 @@ import com.android.volley.VolleyError;
 import com.suyong.kakaobot.net.model.CarteListByDate;
 import com.suyong.kakaobot.net.model.FoodBookList;
 import com.suyong.kakaobot.net.base.Net;
+import com.suyong.kakaobot.net.model.WeatherItem;
 import com.suyong.kakaobot.net.util.SDF;
 import com.suyong.kakaobot.script.JSScriptEngine;
 import com.suyong.kakaobot.script.PythonScriptEngine;
 
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.xml.sax.SAXException;
+
+import java.io.IOException;
 import java.util.ArrayList;
+
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
+
+import rx.Observable;
+import rx.android.schedulers.AndroidSchedulers;
+import rx.functions.Action1;
+import rx.schedulers.Schedulers;
 
 /*
 import org.python.core.PyBoolean;
@@ -102,14 +117,17 @@ public class KakaoTalkListener extends NotificationListenerService {
     }
 
     private void sendCustomMessage(Notification.Action act, Type.Message message) {
-        if (act.title.toString().contains("bf개발팀")) {
+        String target = "bf개발팀";
+//        String target = "이주영";
+        if (act.title.toString().contains(target)) {
             mMessage = message;
-            if (message.message.equals("@?")) {
+            if (message.message.equals("@?") || message.message.equals("@")) {
                 String msg =
                         "뜨뜨르뜨뜨띠 영봇 명령어" +
                                 "\n@점심 : 오늘 점심"
                                 + "\n@저녁 : 오늘 저녁"
-                                + "\n@반찬 : 이번주 반찬";
+                                + "\n@반찬 : 이번주 반찬"
+                                + "\n@날씨 : 중기예보";
                 send(mMessage.room, msg);
             } else if (message.message.equals("@점심")) {
                 Net.async(new CarteListByDate(SDF.yyyymmdd_1.now(), SDF.yyyymmdd_1.now())).setOnNetResponse(onListener);
@@ -118,11 +136,59 @@ public class KakaoTalkListener extends NotificationListenerService {
             } else if (message.message.equals("@반찬")) {
                 Net.async(new FoodBookList()).setOnNetResponse(onFoodListener);
             } else if (message.message.equals("@오진주")) {
-                send(mMessage.room, "똥멍청이");
+                send(mMessage.room, "기대하는 똥멍청이");
+            } else if (message.message.equals("@이윤희")) {
+                send(mMessage.room, "똥멍청이 절친");
+            } else if (message.message.equals("@박민")) {
+                send(mMessage.room, "스위치나 사라");
+            } else if (message.message.equals("@김봄이")) {
+                send(mMessage.room, "건들면 안되는애");
+            } else if (message.message.equals("@민경환")) {
+                send(mMessage.room, "과장님은 건들지마라");
+            } else if (message.message.equals("@똥멍청이")) {
+                send(mMessage.room, "오진주");
             } else if (message.message.equals("@이주영")) {
-                send(mMessage.room, "뜨르뜨띠뜨띠 존경하는 저의 창조주님");
+                send(mMessage.room, "뜨르뜨띠뜨띠 존경하는 저의 창조주님");;
+            } else if (message.message.equals("@날씨")) {
+                // Thread로 웹서버에 접속
+                new Thread() {
+                    public void run() {
+                        getWeather();
+                    }
+                }.start();
             }
+
         }
+    }
+
+    private void getWeather() {
+        Log.e(TAG, "getWeather()");
+        DocumentBuilderFactory f = DocumentBuilderFactory.newInstance();
+        DocumentBuilder parser = null;
+        try {
+            parser = f.newDocumentBuilder();
+        } catch (ParserConfigurationException e) {
+            e.printStackTrace();
+        }
+
+        Document xmlDoc = null;
+        String url = "http://www.kma.go.kr/weather/forecast/mid-term-rss3.jsp?stnId=109";
+        try {
+            xmlDoc = parser.parse(url);
+        } catch (SAXException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        Element root = xmlDoc.getDocumentElement();
+
+        String title = root.getElementsByTagName("title").item(1).getTextContent();
+        String content = root.getElementsByTagName("wf").item(0).getTextContent();
+        content = content.replaceAll("<br />", "\n");
+
+        String msg = String.format("%s\n\n%s", title, content);
+        send(mMessage.room, msg);
     }
 
     public static void send(String room, String message) throws IllegalArgumentException { // @author ManDongI
@@ -254,6 +320,18 @@ public class KakaoTalkListener extends NotificationListenerService {
                 e.printStackTrace();
                 send(mMessage.room, e.getMessage());
             }
+        }
+    };
+
+    private Net.OnNetResponse<WeatherItem> onWeatherListener = new Net.OnNetResponse<WeatherItem>() {
+        @Override
+        public void onErrorResponse(VolleyError error) {
+
+        }
+
+        @Override
+        public void onResponse(WeatherItem response) {
+
         }
     };
 }

@@ -18,7 +18,7 @@ import java.util.List;
  */
 public class CarteListByDate extends BFEnty {
 
-    private String url = "restaurant/api/CarteListByDate.json";
+    private String url = "http://t.bodyfriend.co.kr:8070/restaurant/api/CarteListByDate.json";
 
     public CarteListByDate(String startDate, String endDate) {
         setEnableProgress(false);
