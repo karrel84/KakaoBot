@@ -5,6 +5,15 @@ public class Type {
         public String room;
         public String sender;
         public String message;
+
+        @Override
+        public String toString() {
+            return "Message{" +
+                    "message='" + message + '\'' +
+                    ", room='" + room + '\'' +
+                    ", sender='" + sender + '\'' +
+                    '}';
+        }
     }
 
     public static class Project {
