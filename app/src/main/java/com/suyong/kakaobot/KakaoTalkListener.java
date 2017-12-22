@@ -14,9 +14,9 @@ import android.util.Log;
 import android.widget.Toast;
 
 import com.android.volley.VolleyError;
+import com.suyong.kakaobot.net.base.Net;
 import com.suyong.kakaobot.net.model.CarteListByDate;
 import com.suyong.kakaobot.net.model.FoodBookList;
-import com.suyong.kakaobot.net.base.Net;
 import com.suyong.kakaobot.net.model.WeatherItem;
 import com.suyong.kakaobot.net.util.SDF;
 import com.suyong.kakaobot.script.JSScriptEngine;
@@ -32,11 +32,6 @@ import java.util.ArrayList;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
-
-import rx.Observable;
-import rx.android.schedulers.AndroidSchedulers;
-import rx.functions.Action1;
-import rx.schedulers.Schedulers;
 
 /*
 import org.python.core.PyBoolean;
@@ -148,7 +143,8 @@ public class KakaoTalkListener extends NotificationListenerService {
             } else if (message.message.equals("@똥멍청이")) {
                 send(mMessage.room, "오진주");
             } else if (message.message.equals("@이주영")) {
-                send(mMessage.room, "뜨르뜨띠뜨띠 존경하는 저의 창조주님");;
+                send(mMessage.room, "뜨르뜨띠뜨띠 존경하는 저의 창조주님");
+                ;
             } else if (message.message.equals("@날씨")) {
                 // Thread로 웹서버에 접속
                 new Thread() {
@@ -162,33 +158,38 @@ public class KakaoTalkListener extends NotificationListenerService {
     }
 
     private void getWeather() {
-        Log.e(TAG, "getWeather()");
-        DocumentBuilderFactory f = DocumentBuilderFactory.newInstance();
-        DocumentBuilder parser = null;
         try {
-            parser = f.newDocumentBuilder();
-        } catch (ParserConfigurationException e) {
-            e.printStackTrace();
+
+            Log.e(TAG, "getWeather()");
+            DocumentBuilderFactory f = DocumentBuilderFactory.newInstance();
+            DocumentBuilder parser = null;
+            try {
+                parser = f.newDocumentBuilder();
+            } catch (ParserConfigurationException e) {
+                e.printStackTrace();
+            }
+
+            Document xmlDoc = null;
+            String url = "http://www.kma.go.kr/weather/forecast/mid-term-rss3.jsp?stnId=109";
+            try {
+                xmlDoc = parser.parse(url);
+            } catch (SAXException e) {
+                e.printStackTrace();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
+            Element root = xmlDoc.getDocumentElement();
+
+            String title = root.getElementsByTagName("title").item(1).getTextContent();
+            String content = root.getElementsByTagName("wf").item(0).getTextContent();
+            content = content.replaceAll("<br />", "\n");
+
+            String msg = String.format("%s\n\n%s", title, content);
+            send(mMessage.room, msg);
+        } catch (Exception e) {
+            send(mMessage.room, e.getMessage());
         }
-
-        Document xmlDoc = null;
-        String url = "http://www.kma.go.kr/weather/forecast/mid-term-rss3.jsp?stnId=109";
-        try {
-            xmlDoc = parser.parse(url);
-        } catch (SAXException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-        Element root = xmlDoc.getDocumentElement();
-
-        String title = root.getElementsByTagName("title").item(1).getTextContent();
-        String content = root.getElementsByTagName("wf").item(0).getTextContent();
-        content = content.replaceAll("<br />", "\n");
-
-        String msg = String.format("%s\n\n%s", title, content);
-        send(mMessage.room, msg);
     }
 
     public static void send(String room, String message) throws IllegalArgumentException { // @author ManDongI
