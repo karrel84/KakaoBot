@@ -14,9 +14,11 @@ import android.util.Log;
 import android.widget.Toast;
 
 import com.android.volley.VolleyError;
+import com.google.gson.Gson;
 import com.suyong.kakaobot.net.base.Net;
 import com.suyong.kakaobot.net.model.CarteListByDate;
 import com.suyong.kakaobot.net.model.FoodBookList;
+import com.suyong.kakaobot.net.model.Simsim;
 import com.suyong.kakaobot.net.model.WeatherItem;
 import com.suyong.kakaobot.net.util.SDF;
 import com.suyong.kakaobot.script.JSScriptEngine;
@@ -24,14 +26,24 @@ import com.suyong.kakaobot.script.PythonScriptEngine;
 
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
+
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.Response;
 
 /*
 import org.python.core.PyBoolean;
@@ -111,7 +123,11 @@ public class KakaoTalkListener extends NotificationListenerService {
         }
     }
 
-    private void sendCustomMessage(Notification.Action act, Type.Message message) {
+    private void sendCustomMessage(Notification.Action act, final Type.Message message) {
+        if (!message.message.startsWith("@")) {
+            return;
+        }
+
         String target = "bf개발팀";
 //        String target = "이주영";
         if (act.title.toString().contains(target)) {
@@ -122,38 +138,166 @@ public class KakaoTalkListener extends NotificationListenerService {
                                 "\n@점심 : 오늘 점심"
                                 + "\n@저녁 : 오늘 저녁"
                                 + "\n@반찬 : 이번주 반찬"
-                                + "\n@날씨 : 중기예보";
+                                + "\n@일기 : 일기예보"
+                                + "\n@중기 : 중기예보";
                 send(mMessage.room, msg);
+                return;
             } else if (message.message.equals("@점심")) {
                 Net.async(new CarteListByDate(SDF.yyyymmdd_1.now(), SDF.yyyymmdd_1.now())).setOnNetResponse(onListener);
+                return;
             } else if (message.message.equals("@저녁")) {
                 Net.async(new CarteListByDate(SDF.yyyymmdd_1.now(), SDF.yyyymmdd_1.now())).setOnNetResponse(onListener);
+                return;
             } else if (message.message.equals("@반찬")) {
                 Net.async(new FoodBookList()).setOnNetResponse(onFoodListener);
-            } else if (message.message.equals("@오진주")) {
-                send(mMessage.room, "기대하는 똥멍청이");
-            } else if (message.message.equals("@이윤희")) {
-                send(mMessage.room, "똥멍청이 절친");
-            } else if (message.message.equals("@박민")) {
-                send(mMessage.room, "스위치나 사라");
-            } else if (message.message.equals("@김봄이")) {
-                send(mMessage.room, "건들면 안되는애");
-            } else if (message.message.equals("@민경환")) {
-                send(mMessage.room, "과장님은 건들지마라");
-            } else if (message.message.equals("@똥멍청이")) {
-                send(mMessage.room, "오진주");
-            } else if (message.message.equals("@이주영")) {
-                send(mMessage.room, "뜨르뜨띠뜨띠 존경하는 저의 창조주님");
-                ;
-            } else if (message.message.equals("@날씨")) {
+                return;
+            } else if (message.message.equals("@중기")) {
                 // Thread로 웹서버에 접속
                 new Thread() {
                     public void run() {
                         getWeather();
                     }
                 }.start();
+                return;
+            } else if (message.message.equals("@일기") || message.message.equals("@날씨")) {
+                // Thread로 웹서버에 접속
+                new Thread() {
+                    public void run() {
+                        getWeather2();
+                    }
+                }.start();
+                return;
             }
 
+            // 팀원 호칭
+            if (message.message.equals("@오진주")) {
+                send(mMessage.room, "#딜러가되고싶은탱커");
+                return;
+            } else if (message.message.equals("@신찬용")) {
+                send(mMessage.room, "#(전)제오닉스개발자");
+                return;
+            } else if (message.message.equals("@이윤희")) {
+                send(mMessage.room, "#먹방여신");
+                return;
+            } else if (message.message.equals("@박민")) {
+                send(mMessage.room, "#유부남");
+                return;
+            } else if (message.message.equals("@김봄이")) {
+                send(mMessage.room, "#때리고뭄");
+                return;
+            } else if (message.message.equals("@민경환")) {
+                send(mMessage.room, "#이세돌 #호적카운트다운D-6");
+                return;
+            } else if (message.message.equals("@이근호")) {
+                send(mMessage.room, "#재입사자 #바디이야기망해라");
+                return;
+            } else if (message.message.equals("@똥멍청이")) {
+                send(mMessage.room, "#오진주");
+                return;
+            } else if (message.message.equals("@이주영")) {
+                send(mMessage.room, "#영봇창조자");
+                return;
+            } else if (message.message.equals("@박숙희")) {
+                send(mMessage.room, "#수키");
+                return;
+            } else if (message.message.equals("@이재용")) {
+                send(mMessage.room, "#래퍼재용");
+                return;
+            } else if (message.message.equals("@하태석")) {
+                send(mMessage.room, "#프로나눔러 #기린");
+                return;
+            } else if (message.message.equals("@강아연")) {
+                send(mMessage.room, "#스위치유저");
+                return;
+            } else if (message.message.equals("@김난")) {
+                send(mMessage.room, "#><");
+                return;
+            } else if (message.message.equals("@영봇")) {
+                send(mMessage.room, "골렘에 골을 넣은 게 바로 나다 이건 유머다 다른 골렘들은 이걸 적절히 재미있어한다");
+                return;
+            }
+
+            // 심심아 놀자
+            new Thread() {
+                public void run() {
+                    try {
+                        String msg = message.message.substring(1);
+                        String response = sendSimsim(msg);
+                        send(mMessage.room, response);
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }.start();
+        }
+    }
+
+    private void getWeather2() {
+        try {
+            DocumentBuilderFactory f = DocumentBuilderFactory.newInstance();
+            DocumentBuilder parser = f.newDocumentBuilder();
+
+            Document xmlDoc = null;
+            String url = "http://www.kma.go.kr/wid/queryDFSRSS.jsp?zone=1168065500";
+            xmlDoc = parser.parse(url);
+
+            Element root = xmlDoc.getDocumentElement();
+
+            String pubDate = root.getElementsByTagName("pubDate").item(0).getTextContent();
+            System.out.println("pubDate :" + pubDate);
+
+            String category = root.getElementsByTagName("category").item(0).getTextContent();
+            System.out.println("category :" + category);
+
+            NodeList nodeList = root.getElementsByTagName("data");
+
+            StringBuilder builder = new StringBuilder();
+
+            builder.append(category);
+
+            builder.append("\n");
+            builder.append(String.format("%s 기준", pubDate));
+            builder.append("\n");
+            builder.append("\n");
+
+            List<Map> maps = new ArrayList<>();
+            for (int i = 0; i < nodeList.getLength(); i++) {
+                Node node = nodeList.item(i);
+                NodeList childNodes = node.getChildNodes();
+
+                Map<String, String> map = new HashMap<>();
+                maps.add(map);
+                for (int j = 0; j < childNodes.getLength(); j++) {
+                    String name = childNodes.item(j).getNodeName();
+                    String value = childNodes.item(j).getTextContent();
+                    System.out.println(String.format("name : %s, value : %s", name, value));
+
+                    if (name.equals("hour")) {
+                        map.put("hour", value);
+                    }
+                    if (name.equals("day")) {
+                        map.put("day", value);
+                    }
+                    if (name.equals("temp")) {
+                        map.put("temp", value);
+                    }
+                    if (name.equals("wfKor")) {
+                        map.put("wfKor", value);
+                    }
+                }
+            }
+
+            for (Map<String, String> map : maps) {
+                Calendar calendar = Calendar.getInstance();
+                calendar.add(Calendar.DAY_OF_MONTH, Integer.parseInt(map.get("day")));
+                String msg = String.format("%s %02d시 온도:%s 상태:%s", SDF.mmdd__.format(calendar.getTime()), Integer.parseInt(map.get("hour")), map.get("temp"), map.get("wfKor"));
+                builder.append(msg);
+                builder.append("\n");
+            }
+            send(mMessage.room, builder.toString());
+
+        } catch (Exception e) {
+            send(mMessage.room, e.getMessage());
         }
     }
 
@@ -296,7 +440,7 @@ public class KakaoTalkListener extends NotificationListenerService {
 
             } catch (Exception e) {
                 e.printStackTrace();
-                send(mMessage.room, e.getMessage());
+                send(mMessage.room, "식단이 등록되지 않았습니다.");
             }
         }
     };
@@ -319,7 +463,7 @@ public class KakaoTalkListener extends NotificationListenerService {
 
             } catch (Exception e) {
                 e.printStackTrace();
-                send(mMessage.room, e.getMessage());
+                send(mMessage.room, "반찬이 등록되지 않았습니다.");
             }
         }
     };
@@ -335,4 +479,24 @@ public class KakaoTalkListener extends NotificationListenerService {
 
         }
     };
+
+    // OkHttp3를 활용하여 구현함
+    public String sendSimsim(String text) throws IOException {
+        String url = String.format("http://sandbox.api.simsimi.com/request.p?key=e2e2be41-a6d7-44fd-9846-65b2425386d4&lc=en&ft=1.0&text=%s", text);
+        OkHttpClient client = new OkHttpClient();
+        Request request = new Request.Builder().url(url).build();
+
+        try (Response response = client.newCall(request).execute()) {
+            String json = response.body().string();
+            System.out.println("json : " + json);
+
+            Gson gson = new Gson();
+            Simsim simsim = gson.fromJson(json, Simsim.class);
+
+
+            return simsim.response;
+        } catch (Exception e) {
+            return "";
+        }
+    }
 }
