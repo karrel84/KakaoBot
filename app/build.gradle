@@ -36,5 +36,5 @@ dependencies {
     compile 'com.google.code.gson:gson:2.6.1'
     compile 'io.reactivex:rxandroid:1.1.0'
     compile 'com.squareup.okhttp3:okhttp:3.5.0'
-
+    implementation 'ai.api:sdk:2.0.7'
 }

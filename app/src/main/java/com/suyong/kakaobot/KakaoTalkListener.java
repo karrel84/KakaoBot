@@ -5,6 +5,7 @@ import android.app.PendingIntent;
 import android.app.RemoteInput;
 import android.content.Context;
 import android.content.Intent;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.service.notification.NotificationListenerService;
 import android.service.notification.StatusBarNotification;
@@ -41,6 +42,12 @@ import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 
+import ai.api.AIServiceException;
+import ai.api.android.AIConfiguration;
+import ai.api.android.AIDataService;
+import ai.api.model.AIRequest;
+import ai.api.model.AIResponse;
+import ai.api.model.Result;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
@@ -86,10 +93,10 @@ public class KakaoTalkListener extends NotificationListenerService {
                     session.session = act;
                     session.message = message.message;
                     session.sender = message.sender;
-                    session.room = message.room;
+                    String room = (String) act.title;
+                    session.room = room = room.substring(4, room.length() - 1);
 
-                    Log.d("KakaoBot/Listener", "message : " + message);
-                    Log.d("KakaoBot/Listener", "act.title : " + act.title);
+                    Log.d("KakaoBot/Listener", session.toString());
 
                     sessions.add(session);
 
@@ -105,131 +112,103 @@ public class KakaoTalkListener extends NotificationListenerService {
                             });
                         }
                     }
-                    for (PythonScriptEngine engine : pythonEngines) {
-                        /*engine.invokeFunction("talkReceivedHook", new PyObject[]{
-                                new PyString(message.room),
-                                new PyString(message.message),
-                                new PyString(message.sender),
-                                new PyBoolean(!message.room.equals(message.sender))
-                        });*/
-                        Log.d("KakaoBot/Listener", "Python Received! " + message.message);
-                    }
 
 
                     // 내가 원하는 방에 커스텀 메세지를 보낸다.
-                    sendCustomMessage(act, message);
+                    if (session.room.equals("이주영")) { // 내방, Tester의 메세지이다
+                        messageJuyoung(session);
+                    }
+
+                    if (session.room.equals("bf개발팀")) { // 회사 개발팀방
+                        messageBfTeam(session);
+                    }
+
+                    if (session.room.equals("안드로이드 개발 Q&A및 팁")) { // kakao 안드로이드 방
+
+                    }
+
                 }
             }
         }
     }
 
-    private void sendCustomMessage(Notification.Action act, final Type.Message message) {
-        if (!message.message.startsWith("@")) {
+    private void messageBfTeam(final Session session) {
+        if (!session.message.startsWith("@")) {
+            return;
+        }
+        final AIConfiguration config = new AIConfiguration("6a9d97f0c5734e82aa7f393e93c6a1ee",
+                AIConfiguration.SupportedLanguages.Korean,
+                AIConfiguration.RecognitionEngine.System);
+
+        final AIDataService aiDataService = new AIDataService(getApplicationContext(), config);
+
+        final AIRequest aiRequest = new AIRequest();
+        aiRequest.setQuery(session.message);
+
+        new AsyncTask<AIRequest, Void, AIResponse>() {
+            @Override
+            protected AIResponse doInBackground(AIRequest... requests) {
+                try {
+                    final AIResponse response = aiDataService.request(aiRequest);
+                    return response;
+                } catch (AIServiceException e) {
+                }
+                return null;
+            }
+
+            @Override
+            protected void onPostExecute(AIResponse response) {
+                Log.d("onPostExecute", "onPostExecute");
+                if (response != null) {
+                    final Result result = response.getResult();
+                    String speech = result.getFulfillment().getSpeech();
+                    speech = speech.replace("name", session.sender);
+                    send(session.room, speech);
+                }
+            }
+        }.execute(aiRequest);
+
+
+    }
+
+    private void messageJuyoung(final Session session) {
+        if (!session.message.startsWith("@")) {
             return;
         }
 
-        String target = "bf개발팀";
-//        String target = "이주영";
-        if (act.title.toString().contains(target)) {
-            mMessage = message;
-            if (message.message.equals("@?") || message.message.equals("@")) {
-                String msg =
-                        "뜨뜨르뜨뜨띠 영봇 명령어" +
-                                "\n@점심 : 오늘 점심"
-                                + "\n@저녁 : 오늘 저녁"
-                                + "\n@반찬 : 이번주 반찬"
-                                + "\n@일기 : 일기예보"
-                                + "\n@중기 : 중기예보";
-                send(mMessage.room, msg);
-                return;
-            } else if (message.message.equals("@점심")) {
-                Net.async(new CarteListByDate(SDF.yyyymmdd_1.now(), SDF.yyyymmdd_1.now())).setOnNetResponse(onListener);
-                return;
-            } else if (message.message.equals("@저녁")) {
-                Net.async(new CarteListByDate(SDF.yyyymmdd_1.now(), SDF.yyyymmdd_1.now())).setOnNetResponse(onListener);
-                return;
-            } else if (message.message.equals("@반찬")) {
-                Net.async(new FoodBookList()).setOnNetResponse(onFoodListener);
-                return;
-            } else if (message.message.equals("@중기")) {
-                // Thread로 웹서버에 접속
-                new Thread() {
-                    public void run() {
-                        getWeather();
-                    }
-                }.start();
-                return;
-            } else if (message.message.equals("@일기") || message.message.equals("@날씨")) {
-                // Thread로 웹서버에 접속
-                new Thread() {
-                    public void run() {
-                        getWeather2();
-                    }
-                }.start();
-                return;
-            }
+        final AIConfiguration config = new AIConfiguration("6a9d97f0c5734e82aa7f393e93c6a1ee",
+                AIConfiguration.SupportedLanguages.Korean,
+                AIConfiguration.RecognitionEngine.System);
 
-            // 팀원 호칭
-            if (message.message.equals("@오진주")) {
-                send(mMessage.room, "#딜러가되고싶은탱커");
-                return;
-            } else if (message.message.equals("@신찬용")) {
-                send(mMessage.room, "#(전)제오닉스개발자");
-                return;
-            } else if (message.message.equals("@이윤희")) {
-                send(mMessage.room, "#먹방여신");
-                return;
-            } else if (message.message.equals("@박민")) {
-                send(mMessage.room, "#유부남");
-                return;
-            } else if (message.message.equals("@김봄이")) {
-                send(mMessage.room, "#때리고뭄");
-                return;
-            } else if (message.message.equals("@민경환")) {
-                send(mMessage.room, "#이세돌 #호적카운트다운D-6");
-                return;
-            } else if (message.message.equals("@이근호")) {
-                send(mMessage.room, "#재입사자 #바디이야기망해라");
-                return;
-            } else if (message.message.equals("@똥멍청이")) {
-                send(mMessage.room, "#오진주");
-                return;
-            } else if (message.message.equals("@이주영")) {
-                send(mMessage.room, "#영봇창조자");
-                return;
-            } else if (message.message.equals("@박숙희")) {
-                send(mMessage.room, "#수키");
-                return;
-            } else if (message.message.equals("@이재용")) {
-                send(mMessage.room, "#래퍼재용");
-                return;
-            } else if (message.message.equals("@하태석")) {
-                send(mMessage.room, "#프로나눔러 #기린");
-                return;
-            } else if (message.message.equals("@강아연")) {
-                send(mMessage.room, "#스위치유저");
-                return;
-            } else if (message.message.equals("@김난")) {
-                send(mMessage.room, "#><");
-                return;
-            } else if (message.message.equals("@영봇")) {
-                send(mMessage.room, "골렘에 골을 넣은 게 바로 나다 이건 유머다 다른 골렘들은 이걸 적절히 재미있어한다");
-                return;
-            }
+        final AIDataService aiDataService = new AIDataService(getApplicationContext(), config);
 
-            // 심심아 놀자
-            new Thread() {
-                public void run() {
-                    try {
-                        String msg = message.message.substring(1);
-                        String response = sendSimsim(msg);
-                        send(mMessage.room, response);
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
+        final AIRequest aiRequest = new AIRequest();
+        aiRequest.setQuery(session.message);
+
+        new AsyncTask<AIRequest, Void, AIResponse>() {
+            @Override
+            protected AIResponse doInBackground(AIRequest... requests) {
+                try {
+                    final AIResponse response = aiDataService.request(aiRequest);
+                    return response;
+                } catch (AIServiceException e) {
                 }
-            }.start();
-        }
+                return null;
+            }
+
+            @Override
+            protected void onPostExecute(AIResponse response) {
+                Log.d("onPostExecute", "onPostExecute");
+                if (response != null) {
+                    final Result result = response.getResult();
+                    String speech = result.getFulfillment().getSpeech();
+                    speech = speech.replace("name", session.sender);
+                    send(session.room, speech);
+                }
+            }
+        }.execute(aiRequest);
+
+
     }
 
     private void getWeather2() {
@@ -372,10 +351,6 @@ public class KakaoTalkListener extends NotificationListenerService {
         return jsEngines.toArray(new JSScriptEngine[0]);
     }
 
-    public static PythonScriptEngine[] getPythonEngines() {
-        return pythonEngines.toArray(new PythonScriptEngine[0]);
-    }
-
     private Type.Message parsingMessage(String title, Object index) {
         Type.Message result = new Type.Message();
         result.room = title;
@@ -398,12 +373,6 @@ public class KakaoTalkListener extends NotificationListenerService {
         jsEngines.add(engine);
     }
 
-    public static void addPythonEngine(PythonScriptEngine engine) throws Exception {
-        //engine.execute();
-
-        pythonEngines.add(engine);
-    }
-
     public static void clearEngine() {
         jsEngines.clear();
         pythonEngines.clear();
@@ -415,6 +384,16 @@ public class KakaoTalkListener extends NotificationListenerService {
         public String room;
         public String sender;
         public String message;
+
+        @Override
+        public String toString() {
+            return "Session{" +
+                    "session=" + session +
+                    ", room='" + room + '\'' +
+                    ", sender='" + sender + '\'' +
+                    ", message='" + message + '\'' +
+                    '}';
+        }
     }
 
     private Net.OnNetResponse<CarteListByDate> onListener = new Net.OnNetResponse<CarteListByDate>() {
