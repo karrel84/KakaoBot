@@ -22,6 +22,10 @@ import com.suyong.kakaobot.net.model.FoodBookList;
 import com.suyong.kakaobot.net.model.Simsim;
 import com.suyong.kakaobot.net.model.WeatherItem;
 import com.suyong.kakaobot.net.util.SDF;
+import com.suyong.kakaobot.rellbot.BfSender;
+import com.suyong.kakaobot.rellbot.KakaoAndroidSender;
+import com.suyong.kakaobot.rellbot.TesterSender;
+import com.suyong.kakaobot.rellbot.SenderListener;
 import com.suyong.kakaobot.script.JSScriptEngine;
 import com.suyong.kakaobot.script.PythonScriptEngine;
 
@@ -115,203 +119,21 @@ public class KakaoTalkListener extends NotificationListenerService {
 
 
                     // 내가 원하는 방에 커스텀 메세지를 보낸다.
-                    if (session.room.equals("이주영")) { // 내방, Tester의 메세지이다
-                        messageJuyoung(session);
-                    }
-
-                    if (session.room.equals("bf개발팀")) { // 회사 개발팀방
-                        messageBfTeam(session);
-                    }
-
-                    if (session.room.equals("안드로이드 개발 Q&A및 팁")) { // kakao 안드로이드 방
-
-                    }
-
-                }
-            }
-        }
-    }
-
-    private void messageBfTeam(final Session session) {
-        if (!session.message.startsWith("@")) {
-            return;
-        }
-        final AIConfiguration config = new AIConfiguration("6a9d97f0c5734e82aa7f393e93c6a1ee",
-                AIConfiguration.SupportedLanguages.Korean,
-                AIConfiguration.RecognitionEngine.System);
-
-        final AIDataService aiDataService = new AIDataService(getApplicationContext(), config);
-
-        final AIRequest aiRequest = new AIRequest();
-        aiRequest.setQuery(session.message);
-
-        new AsyncTask<AIRequest, Void, AIResponse>() {
-            @Override
-            protected AIResponse doInBackground(AIRequest... requests) {
-                try {
-                    final AIResponse response = aiDataService.request(aiRequest);
-                    return response;
-                } catch (AIServiceException e) {
-                }
-                return null;
-            }
-
-            @Override
-            protected void onPostExecute(AIResponse response) {
-                Log.d("onPostExecute", "onPostExecute");
-                if (response != null) {
-                    final Result result = response.getResult();
-                    String speech = result.getFulfillment().getSpeech();
-                    speech = speech.replace("name", session.sender);
-                    send(session.room, speech);
-                }
-            }
-        }.execute(aiRequest);
-
-
-    }
-
-    private void messageJuyoung(final Session session) {
-        if (!session.message.startsWith("@")) {
-            return;
-        }
-
-        final AIConfiguration config = new AIConfiguration("6a9d97f0c5734e82aa7f393e93c6a1ee",
-                AIConfiguration.SupportedLanguages.Korean,
-                AIConfiguration.RecognitionEngine.System);
-
-        final AIDataService aiDataService = new AIDataService(getApplicationContext(), config);
-
-        final AIRequest aiRequest = new AIRequest();
-        aiRequest.setQuery(session.message);
-
-        new AsyncTask<AIRequest, Void, AIResponse>() {
-            @Override
-            protected AIResponse doInBackground(AIRequest... requests) {
-                try {
-                    final AIResponse response = aiDataService.request(aiRequest);
-                    return response;
-                } catch (AIServiceException e) {
-                }
-                return null;
-            }
-
-            @Override
-            protected void onPostExecute(AIResponse response) {
-                Log.d("onPostExecute", "onPostExecute");
-                if (response != null) {
-                    final Result result = response.getResult();
-                    String speech = result.getFulfillment().getSpeech();
-                    speech = speech.replace("name", session.sender);
-                    send(session.room, speech);
-                }
-            }
-        }.execute(aiRequest);
-
-
-    }
-
-    private void getWeather2() {
-        try {
-            DocumentBuilderFactory f = DocumentBuilderFactory.newInstance();
-            DocumentBuilder parser = f.newDocumentBuilder();
-
-            Document xmlDoc = null;
-            String url = "http://www.kma.go.kr/wid/queryDFSRSS.jsp?zone=1168065500";
-            xmlDoc = parser.parse(url);
-
-            Element root = xmlDoc.getDocumentElement();
-
-            String pubDate = root.getElementsByTagName("pubDate").item(0).getTextContent();
-            System.out.println("pubDate :" + pubDate);
-
-            String category = root.getElementsByTagName("category").item(0).getTextContent();
-            System.out.println("category :" + category);
-
-            NodeList nodeList = root.getElementsByTagName("data");
-
-            StringBuilder builder = new StringBuilder();
-
-            builder.append(category);
-
-            builder.append("\n");
-            builder.append(String.format("%s 기준", pubDate));
-            builder.append("\n");
-            builder.append("\n");
-
-            List<Map> maps = new ArrayList<>();
-            for (int i = 0; i < nodeList.getLength(); i++) {
-                Node node = nodeList.item(i);
-                NodeList childNodes = node.getChildNodes();
-
-                Map<String, String> map = new HashMap<>();
-                maps.add(map);
-                for (int j = 0; j < childNodes.getLength(); j++) {
-                    String name = childNodes.item(j).getNodeName();
-                    String value = childNodes.item(j).getTextContent();
-                    System.out.println(String.format("name : %s, value : %s", name, value));
-
-                    if (name.equals("hour")) {
-                        map.put("hour", value);
-                    }
-                    if (name.equals("day")) {
-                        map.put("day", value);
-                    }
-                    if (name.equals("temp")) {
-                        map.put("temp", value);
-                    }
-                    if (name.equals("wfKor")) {
-                        map.put("wfKor", value);
+                    if (room.equals("이주영")) { // 내방, Tester의 메세지이다
+                        TesterSender
+                                .getInstance(getApplicationContext())
+                                .execute(session);
+                    } else if (room.equals("bf개발팀")) {
+                        BfSender
+                                .getInstance(getApplicationContext())
+                                .execute(session);
+                    } else if (room.equals("안드로이드 개발 Q&A및 팁")) {
+                        KakaoAndroidSender.getInstance(getApplicationContext()).execute(session);
+                    } else {
+                        send(room, "응답하지 않습니다.");
                     }
                 }
             }
-
-            for (Map<String, String> map : maps) {
-                Calendar calendar = Calendar.getInstance();
-                calendar.add(Calendar.DAY_OF_MONTH, Integer.parseInt(map.get("day")));
-                String msg = String.format("%s %02d시 온도:%s 상태:%s", SDF.mmdd__.format(calendar.getTime()), Integer.parseInt(map.get("hour")), map.get("temp"), map.get("wfKor"));
-                builder.append(msg);
-                builder.append("\n");
-            }
-            send(mMessage.room, builder.toString());
-
-        } catch (Exception e) {
-            send(mMessage.room, e.getMessage());
-        }
-    }
-
-    private void getWeather() {
-        try {
-
-            Log.e(TAG, "getWeather()");
-            DocumentBuilderFactory f = DocumentBuilderFactory.newInstance();
-            DocumentBuilder parser = null;
-            try {
-                parser = f.newDocumentBuilder();
-            } catch (ParserConfigurationException e) {
-                e.printStackTrace();
-            }
-
-            Document xmlDoc = null;
-            String url = "http://www.kma.go.kr/weather/forecast/mid-term-rss3.jsp?stnId=109";
-            try {
-                xmlDoc = parser.parse(url);
-            } catch (SAXException e) {
-                e.printStackTrace();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-
-            Element root = xmlDoc.getDocumentElement();
-
-            String title = root.getElementsByTagName("title").item(1).getTextContent();
-            String content = root.getElementsByTagName("wf").item(0).getTextContent();
-            content = content.replaceAll("<br />", "\n");
-
-            String msg = String.format("%s\n\n%s", title, content);
-            send(mMessage.room, msg);
-        } catch (Exception e) {
-            send(mMessage.room, e.getMessage());
         }
     }
 
@@ -393,89 +215,6 @@ public class KakaoTalkListener extends NotificationListenerService {
                     ", sender='" + sender + '\'' +
                     ", message='" + message + '\'' +
                     '}';
-        }
-    }
-
-    private Net.OnNetResponse<CarteListByDate> onListener = new Net.OnNetResponse<CarteListByDate>() {
-        @Override
-        public void onErrorResponse(VolleyError error) {
-
-        }
-
-        @Override
-        public void onResponse(CarteListByDate response) {
-            try {
-                for (CarteListByDate.Data.resultData d : response.data.resultData) {
-                    if (mMessage.message.equals("@점심") && d.type.equals("LUNCH")) {
-                        send(mMessage.room, String.format("점심 \n%s", d.content));
-                        break;
-                    }
-                    if (mMessage.message.equals("@저녁") && d.type.equals("DINNER")) {
-                        send(mMessage.room, String.format("저녁 \n%s", d.content));
-                        break;
-                    }
-                }
-
-
-            } catch (Exception e) {
-                e.printStackTrace();
-                send(mMessage.room, "식단이 등록되지 않았습니다.");
-            }
-        }
-    };
-
-    private Net.OnNetResponse<FoodBookList> onFoodListener = new Net.OnNetResponse<FoodBookList>() {
-        @Override
-        public void onErrorResponse(VolleyError error) {
-
-        }
-
-        @Override
-        public void onResponse(FoodBookList response) {
-            try {
-                String s = "";
-                for (FoodBookList.Data.resultData d : response.data.resultData) {
-                    s += d.sNm + "\n";
-                }
-                send(mMessage.room, s);
-
-
-            } catch (Exception e) {
-                e.printStackTrace();
-                send(mMessage.room, "반찬이 등록되지 않았습니다.");
-            }
-        }
-    };
-
-    private Net.OnNetResponse<WeatherItem> onWeatherListener = new Net.OnNetResponse<WeatherItem>() {
-        @Override
-        public void onErrorResponse(VolleyError error) {
-
-        }
-
-        @Override
-        public void onResponse(WeatherItem response) {
-
-        }
-    };
-
-    // OkHttp3를 활용하여 구현함
-    public String sendSimsim(String text) throws IOException {
-        String url = String.format("http://sandbox.api.simsimi.com/request.p?key=e2e2be41-a6d7-44fd-9846-65b2425386d4&lc=en&ft=1.0&text=%s", text);
-        OkHttpClient client = new OkHttpClient();
-        Request request = new Request.Builder().url(url).build();
-
-        try (Response response = client.newCall(request).execute()) {
-            String json = response.body().string();
-            System.out.println("json : " + json);
-
-            Gson gson = new Gson();
-            Simsim simsim = gson.fromJson(json, Simsim.class);
-
-
-            return simsim.response;
-        } catch (Exception e) {
-            return "";
         }
     }
 }
