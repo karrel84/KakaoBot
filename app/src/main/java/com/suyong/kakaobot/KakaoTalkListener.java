@@ -119,18 +119,14 @@ public class KakaoTalkListener extends NotificationListenerService {
 
 
                     // 내가 원하는 방에 커스텀 메세지를 보낸다.
-                    if (room.equals("이주영")) { // 내방, Tester의 메세지이다
+                    if (room.equals("안드로이드 개발 Q&A및 팁")) {
+                        if(message.sender.equals("렐")){
+                            KakaoAndroidSender.getInstance(getApplicationContext()).execute(session);
+                        }
+                    } else {
                         TesterSender
                                 .getInstance(getApplicationContext())
                                 .execute(session);
-                    } else if (room.equals("bf개발팀")) {
-                        BfSender
-                                .getInstance(getApplicationContext())
-                                .execute(session);
-                    } else if (room.equals("안드로이드 개발 Q&A및 팁")) {
-                        KakaoAndroidSender.getInstance(getApplicationContext()).execute(session);
-                    } else {
-                        send(room, "응답하지 않습니다.");
                     }
                 }
             }

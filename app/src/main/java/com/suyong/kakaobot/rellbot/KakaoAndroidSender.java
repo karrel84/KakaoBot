@@ -49,8 +49,8 @@ public class KakaoAndroidSender {
     }
 
     public void execute(final KakaoTalkListener.Session session) {
-        if (session.message.startsWith("#")) {
-            session.message = session.message.substring(1);
+        if (session.message.startsWith("렐봇")) {
+            session.message = session.message.substring(2);
         } else {
             return;
         }
