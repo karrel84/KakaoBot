@@ -49,14 +49,14 @@ public class BfSender {
     }
 
     public void execute(final KakaoTalkListener.Session session) {
-        if (session.message.startsWith("#")) {
+        if (session.message.startsWith("@")) {
             session.message = session.message.substring(1);
         } else {
             return;
         }
 
         if (session.message.length() == 0) {
-            session.message = "렐봇";
+            session.message = "사용법";
         }
 
         aiRequest.setQuery(session.message);
@@ -79,6 +79,7 @@ public class BfSender {
                     final Result result = response.getResult();
                     String speech = result.getFulfillment().getSpeech();
                     speech = speech.replace("name", session.sender);
+                    speech = speech.replace("<br>", "\n");
                     KakaoTalkListener.send(session.room, speech);
                 }
             }

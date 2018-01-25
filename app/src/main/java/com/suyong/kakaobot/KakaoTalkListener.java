@@ -117,16 +117,18 @@ public class KakaoTalkListener extends NotificationListenerService {
                         }
                     }
 
-
-                    // 내가 원하는 방에 커스텀 메세지를 보낸다.
-                    if (room.equals("안드로이드 개발 Q&A및 팁")) {
-                        if(message.sender.equals("렐")){
-                            KakaoAndroidSender.getInstance(getApplicationContext()).execute(session);
-                        }
-                    } else {
-                        TesterSender
+                    if (room.equals("bf개발팀")) {
+                        BfSender
                                 .getInstance(getApplicationContext())
                                 .execute(session);
+                    } else if (room.equals("이주영")) {
+                        BfSender
+                                .getInstance(getApplicationContext())
+                                .execute(session);
+                    } else if (room.equals("안드로이드 개발 Q&A및 팁")) {
+                        if (message.sender.equals("렐")) {
+                            KakaoAndroidSender.getInstance(getApplicationContext()).execute(session);
+                        }
                     }
                 }
             }

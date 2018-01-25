@@ -49,7 +49,7 @@ public class TesterSender {
     }
 
     public void execute(final KakaoTalkListener.Session session) {
-        if (session.message.startsWith("#")) {
+        if (session.message.startsWith("@")) {
             session.message = session.message.substring(1);
         } else {
             return;
