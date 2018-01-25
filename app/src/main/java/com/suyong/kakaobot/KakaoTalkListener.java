@@ -120,15 +120,22 @@ public class KakaoTalkListener extends NotificationListenerService {
                     if (room.equals("bf개발팀")) {
                         BfSender
                                 .getInstance(getApplicationContext())
+                                .setIdentifier("@")
                                 .execute(session);
                     } else if (room.equals("이주영")) {
                         BfSender
                                 .getInstance(getApplicationContext())
+                                .setIdentifier("")
                                 .execute(session);
                     } else if (room.equals("안드로이드 개발 Q&A및 팁")) {
                         if (message.sender.equals("렐")) {
                             KakaoAndroidSender.getInstance(getApplicationContext()).execute(session);
                         }
+                    } else {
+                        BfSender
+                                .getInstance(getApplicationContext())
+                                .setIdentifier("")
+                                .execute(session);
                     }
                 }
             }

@@ -24,6 +24,7 @@ public class BfSender {
     private AIRequest aiRequest;
 
     private static final String clientAccessToken = "3853a78b32ee43daa6e83b8c9c7a8491";
+    private String identifier = "@";
 
     public static BfSender getInstance(Context context) {
         if (mInstance == null) {
@@ -49,8 +50,8 @@ public class BfSender {
     }
 
     public void execute(final KakaoTalkListener.Session session) {
-        if (session.message.startsWith("@")) {
-            session.message = session.message.substring(1);
+        if (session.message.startsWith(identifier)) {
+            session.message = session.message.substring(identifier.length());
         } else {
             return;
         }
@@ -85,5 +86,10 @@ public class BfSender {
             }
         }.execute(aiRequest);
 
+    }
+
+    public BfSender setIdentifier(String identifier) {
+        this.identifier = identifier;
+        return this;
     }
 }
