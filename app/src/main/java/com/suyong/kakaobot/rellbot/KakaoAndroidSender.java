@@ -23,6 +23,8 @@ public class KakaoAndroidSender {
     private AIDataService aiDataService;
     private AIRequest aiRequest;
 
+    private String identifier = "@";
+
     private static final String clientAccessToken = "f65c4af0e5284645ac7c77e0080d2fc5";
 
     public static KakaoAndroidSender getInstance(Context context) {
@@ -38,6 +40,11 @@ public class KakaoAndroidSender {
         setupDialogFlow();
     }
 
+    public KakaoAndroidSender setIdentifier(String identifier) {
+        this.identifier = identifier;
+        return this;
+    }
+
     private void setupDialogFlow() {
         final AIConfiguration config = new AIConfiguration(clientAccessToken,
                 AIConfiguration.SupportedLanguages.Korean,
@@ -49,14 +56,14 @@ public class KakaoAndroidSender {
     }
 
     public void execute(final KakaoTalkListener.Session session) {
-        if (session.message.startsWith("렐봇")) {
-            session.message = session.message.substring(2);
+        if (session.message.startsWith(identifier)) {
+            session.message = session.message.substring(identifier.length());
         } else {
             return;
         }
 
         if (session.message.length() == 0) {
-            session.message = "렐봇";
+            session.message = "사용법";
         }
 
         aiRequest.setQuery(session.message);
@@ -79,6 +86,7 @@ public class KakaoAndroidSender {
                     final Result result = response.getResult();
                     String speech = result.getFulfillment().getSpeech();
                     speech = speech.replace("name", session.sender);
+                    speech = speech.replace("<br>", "\n");
                     KakaoTalkListener.send(session.room, speech);
                 }
             }

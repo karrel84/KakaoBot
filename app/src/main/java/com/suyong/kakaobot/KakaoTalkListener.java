@@ -55,6 +55,7 @@ import ai.api.model.Result;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
+import sun.rmi.log.ReliableLog;
 
 /*
 import org.python.core.PyBoolean;
@@ -128,9 +129,10 @@ public class KakaoTalkListener extends NotificationListenerService {
                                 .setIdentifier("")
                                 .execute(session);
                     } else if (room.equals("안드로이드 개발 Q&A및 팁")) {
-                        if (message.sender.equals("렐")) {
-                            KakaoAndroidSender.getInstance(getApplicationContext()).execute(session);
-                        }
+                        if (!message.sender.equals("렐")) return;
+                        KakaoAndroidSender.getInstance(getApplicationContext())
+                                .setIdentifier("@렐봇")
+                                .execute(session);
                     } else {
                         BfSender
                                 .getInstance(getApplicationContext())
